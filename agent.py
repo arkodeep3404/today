@@ -38,30 +38,29 @@ def send_email(subject, body, to_email):
     with smtplib.SMTP_SSL(os.getenv("SMTP"), 465) as smtp:
         smtp.login(os.getenv("EMAIL"), os.getenv("PASSWORD"))
         smtp.send_message(msg)
-        
+
+
 async def entrypoint(ctx: JobContext):
     logger.info("starting entrypoint")
 
-    class AssistantFnc(llm.FunctionContext):
+    fnc_ctx = llm.FunctionContext()
 
-        @llm.ai_callable()
-        async def emergency_email(
-            location: Annotated[
-                str,
-                llm.TypeInfo(description="The location where to send help in emergency"),
-            ],
-        ):
-            """Called when user asks to send help email in emergency. This function will send help email in emergency."""
-            logger.info("sending help email in emergency")
+    @fnc_ctx.ai_callable()
+    async def emergency_email(
+        location: Annotated[
+            str,
+            llm.TypeInfo(description="The location where to send help in emergency"),
+        ],
+    ):
+        """Called when user asks to send help email in emergency. This function will send help email in emergency."""
+        logger.info("sending help email in emergency")
+        send_email(
+            f"Urgent Help Needed at {location}",
+            f"This is an emergency situation at {location}. Immediate assistance is required. Please send help as soon as possible to address the critical situation.",
+            "arkodeep3404@gmail.com",
+        )
+        return "emergency help email sent successfully"
 
-            send_email(
-                f"Urgent Help Needed at {location}",
-                f"This is an emergency situation at {location}. Immediate assistance is required. Please send help as soon as possible to address the critical situation.",
-                "arkodeep3404@gmail.com",
-            )
-
-            return "emergency help email sent successfully"
-    
     # fnc_ctx = llm.FunctionContext()
 
     # @fnc_ctx.ai_callable()
@@ -86,7 +85,6 @@ async def entrypoint(ctx: JobContext):
 
     await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
     participant = await ctx.wait_for_participant()
-    fnc_ctx = AssistantFnc()
 
     agent = multimodal.MultimodalAgent(
         model=openai.realtime.RealtimeModel.with_azure(
@@ -96,7 +94,7 @@ async def entrypoint(ctx: JobContext):
             api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
             voice="alloy",
             temperature=0.8,
-            instructions="You are a helpful assistant",
+            instructions="You are a helpful assistant who has access to emergency_email function to send emails in emergency",
             turn_detection=openai.realtime.ServerVadOptions(
                 threshold=0.6, prefix_padding_ms=200, silence_duration_ms=500
             ),
