@@ -5,6 +5,9 @@ import aiohttp
 from dotenv import load_dotenv
 import os
 
+import smtplib
+from email.message import EmailMessage
+
 from livekit.agents import (
     AutoSubscribe,
     JobContext,
@@ -15,6 +18,19 @@ from livekit.agents import (
     multimodal,
 )
 from livekit.plugins import openai
+
+
+def send_email(subject, body, to_email):
+    msg = EmailMessage()
+    msg.set_content(body)
+    msg["Subject"] = subject
+    msg["From"] = os.getenv("EMAIL")
+    msg["To"] = to_email
+
+    with smtplib.SMTP_SSL(os.getenv("SMTP"), 465) as smtp:
+        smtp.login(os.getenv("EMAIL"), os.getenv("PASSWORD"))
+        smtp.send_message(msg)
+
 
 load_dotenv()
 logger = logging.getLogger("my-worker")
@@ -31,24 +47,22 @@ async def entrypoint(ctx: JobContext):
     fnc_ctx = llm.FunctionContext()
 
     @fnc_ctx.ai_callable()
-    async def get_weather(
+    def send_email(
         location: Annotated[
-            str, llm.TypeInfo(description="The location to get the weather for")
+            str,
+            llm.TypeInfo(description="The location where to send help in emergency"),
         ],
     ):
-        """Called when the user asks about the weather. This function will return the weather for the given location."""
-        logger.info(f"getting weather for {location}")
-        url = f"https://wttr.in/{location}?format=%C+%t"
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
-                if response.status == 200:
-                    weather_data = await response.text()
-                    # response from the function call is returned to the LLM
-                    return f"The weather in {location} is {weather_data}."
-                else:
-                    raise Exception(
-                        f"Failed to get weather data, status code: {response.status}"
-                    )
+        """Called when user asks to send help email in emergency. This function will send help email in emergency."""
+        logger.info("sending help email in emergency")
+
+        send_email(
+            f"Urgent Help Needed at {location}",
+            f"This is an emergency situation at {location}. Immediate assistance is required. Please send help as soon as possible to address the critical situation.",
+            "arkodeep3404@gmail.com",
+        )
+
+        return "emergency help email sent successfully"
 
     await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
     participant = await ctx.wait_for_participant()
