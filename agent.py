@@ -63,15 +63,27 @@ async def entrypoint(ctx: JobContext):
     await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
     participant = await ctx.wait_for_participant()
 
+    # agent = multimodal.MultimodalAgent(
+    #     model=openai.realtime.RealtimeModel.with_azure(
+    #         azure_deployment=os.getenv("AZURE_OPENAI_MODEL_DEPLOYMENT"),
+    #         azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+    #         api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+    #         api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
+    #         voice="alloy",
+    #         temperature=0.8,
+    #         instructions="You are a helpful assistant who has access to emergency_email function to send emails in emergency",
+    #         turn_detection=openai.realtime.ServerVadOptions(
+    #             threshold=0.6, prefix_padding_ms=200, silence_duration_ms=500
+    #         ),
+    #     ),
+    #     fnc_ctx=fnc_ctx,
+    # )
+
     agent = multimodal.MultimodalAgent(
-        model=openai.realtime.RealtimeModel.with_azure(
-            azure_deployment=os.getenv("AZURE_OPENAI_MODEL_DEPLOYMENT"),
-            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-            api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-            api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
+        model=openai.realtime.RealtimeModel(
             voice="alloy",
             temperature=0.8,
-            instructions="You are a helpful assistant who has access to emergency_email function to send emails in emergency",
+            instructions="You are a helpful assistant",
             turn_detection=openai.realtime.ServerVadOptions(
                 threshold=0.6, prefix_padding_ms=200, silence_duration_ms=500
             ),
